@@ -87,35 +87,58 @@ cargo build -r --target x86_64-unknown-linux-musl --features tls
 
 ### Docker
 
-#### RUN
-Use `docker run`:
+可以使用已发布的 Docker 多架构镜像（支持 `amd64` 和 `arm64` 架构）。
 
+#### 1. Docker Run 运行示例
+
+**标准模式（映射端口）**：
 ```bash
 docker run -d \
   --name iptv-proxy \
+  --restart unless-stopped \
   -p 7878:7878 \
-  rust-iptv-proxy:latest \
-  --user "account" \
-  --passwd "password" \
-  --mac "mac" \
-  --udp-proxy
+  ghcr.io/mrlaibin2/rust-iptv-proxy:latest \
+  --user "your_username" \
+  --passwd "your_password" \
+  --mac "your_mac"
 ```
-#### Compose (recommended)
-example docker-compose.yml:
 
-```YAML
+**组播代理模式（推荐使用主机网络模式 `host`）**：
+如果需要使用 **UDP 组播代理（Multicast / IGMP）**，强烈建议将容器运行在 **主机网络模式** (`--net host`)，以便容器能直接接收到网卡接口（如 `enp1s0`）上的组播流量：
+```bash
+docker run -d \
+  --name iptv-proxy \
+  --restart unless-stopped \
+  --net host \
+  ghcr.io/mrlaibin2/rust-iptv-proxy:latest \
+  --user "your_username" \
+  --passwd "your_password" \
+  --mac "your_mac" \
+  --bind "0.0.0.0:7878" \
+  --udp-proxy \
+  -I enp1s0
+```
+
+#### 2. Docker Compose 运行示例 (推荐)
+
+创建 `docker-compose.yml` 文件：
+```yaml
 services:
   iptv-proxy:
-    image: rust-iptv-proxy:latest
+    image: ghcr.io/mrlaibin2/rust-iptv-proxy:latest
     container_name: iptv-proxy
-    ports:
-      - "7878:7878"
+    # 若需支持 UDP 组播代理，必须启用主机网络模式
+    network_mode: host
     command: >
-      --user "${IPTV_USER}"
-      --passwd "${IPTV_PASS}"
-      --mac "${IPTV_MAC}"
+      --user "your_username"
+      --passwd "your_password"
+      --mac "your_mac"
+      --bind "0.0.0.0:7878"
       --udp-proxy
+      -I enp1s0
     restart: always
 ```
-Note: use `.env` to store environmental variables.
+
+> **提示**：为安全起见，您也可以将账号密码写入 `.env` 文件中，然后在 `docker-compose.yml` 里使用变量（如 `${IPTV_USER}`）引用它们。
+
 
