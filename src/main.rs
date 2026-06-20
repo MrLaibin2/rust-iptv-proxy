@@ -225,6 +225,20 @@ async fn logo(args: Data<Args>, path: Path<String>) -> impl Responder {
 
 #[get("/playlist")]
 async fn playlist(args: Data<Args>, req: HttpRequest) -> impl Responder {
+    playlist_impl(args, req).await
+}
+
+#[get("/playlist.m3u")]
+async fn playlist_m3u(args: Data<Args>, req: HttpRequest) -> impl Responder {
+    playlist_impl(args, req).await
+}
+
+#[get("/playlist.m3u8")]
+async fn playlist_m3u8(args: Data<Args>, req: HttpRequest) -> impl Responder {
+    playlist_impl(args, req).await
+}
+
+async fn playlist_impl(args: Data<Args>, req: HttpRequest) -> impl Responder {
     debug!("Get playlist");
     let scheme = req.connection_info().scheme().to_owned();
     let host = req.connection_info().host().to_owned();
@@ -242,7 +256,7 @@ async fn playlist(args: Data<Args>, req: HttpRequest) -> impl Responder {
         Err(e) => {
             if let Some(old_playlist) = OLD_PLAYLIST.try_lock().ok().and_then(|f| f.to_owned()) {
                 HttpResponse::Ok()
-                    .content_type("application/vnd.apple.mpegurl")
+                    .content_type("application/x-mpegurl")
                     .body(old_playlist)
             } else {
                 HttpResponse::InternalServerError().body(format!("Error getting channels: {}", e))
@@ -293,11 +307,12 @@ async fn playlist(args: Data<Args>, req: HttpRequest) -> impl Responder {
                 *old_playlist = Some(playlist.clone());
             }
             HttpResponse::Ok()
-                .content_type("application/vnd.apple.mpegurl")
+                .content_type("application/x-mpegurl")
                 .body(playlist)
         }
     }
 }
+
 
 #[get("/rtsp/{tail:.*}")]
 async fn rtsp(
@@ -383,6 +398,8 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(xmltv)
             .service(playlist)
+            .service(playlist_m3u)
+            .service(playlist_m3u8)
             .service(logo)
             .service(rtsp)
             .service(udp)

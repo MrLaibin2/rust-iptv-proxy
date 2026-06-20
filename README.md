@@ -19,8 +19,8 @@ Options:
 
 ### Endpoints
 
-- `/playlist`: m3u8 list
-- `/xmltv`: EGP
+- `/playlist` (或 `/playlist.m3u`, `/playlist.m3u8`)：M3U 播放列表（VLC 网络串流建议使用带 `.m3u` 或 `.m3u8` 后缀的链接）
+- `/xmltv`：EPG 节目单（XMLTV 格式）
 
 ### Example init.d
 
