@@ -13,6 +13,6 @@ RUN chmod +x ./iptv
 
 EXPOSE 7878
 
-ENTRYPOINT ["./iptv", "--bind", "0.0.0.0:7878"]
-CMD ["--help"]
+ENTRYPOINT ["./iptv"]
+
 
