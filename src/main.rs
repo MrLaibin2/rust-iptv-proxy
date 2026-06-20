@@ -238,7 +238,7 @@ async fn playlist_m3u8(args: Data<Args>, req: HttpRequest) -> impl Responder {
     playlist_impl(args, req).await
 }
 
-async fn playlist_impl(args: Data<Args>, req: HttpRequest) -> impl Responder {
+async fn playlist_impl(args: Data<Args>, req: HttpRequest) -> HttpResponse {
     debug!("Get playlist");
     let scheme = req.connection_info().scheme().to_owned();
     let host = req.connection_info().host().to_owned();
