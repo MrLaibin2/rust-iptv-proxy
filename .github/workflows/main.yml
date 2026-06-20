@@ -22,17 +22,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Cache OpenWrt SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: ~/openwrt
+          key: sdk-${{ matrix.target }}-${{ hashFiles('.github/workflows/main.yml') }}
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
       - name: Build
         run: |
           rustup toolchain add nightly
           rustup +nightly component add rust-src
           rustup +nightly target add ${{ matrix.target }} || true
-          mkdir -p ~/openwrt
-          wget "${{ matrix.sdk }}" -qO- | tar --strip-components 1 -C ~/openwrt -xv --zstd
+          if [ "${{ steps.cache-sdk.outputs.cache-hit }}" != "true" ]; then
+            mkdir -p ~/openwrt
+            wget "${{ matrix.sdk }}" -qO- | tar --strip-components 1 -C ~/openwrt -xv --zstd
+          fi
           toolchain="$(ls -d ~/openwrt/toolchain-*)"
           export RUSTFLAGS="-Ctarget-feature=+crt-static -Zlocation-detail=none -Zunstable-options -Cpanic=immediate-abort -Clinker=$(ls ${toolchain}/bin/*-openwrt-linux-gcc)"
           cargo +nightly build -Zbuild-std=std,panic_abort -r --target ${{ matrix.target }}
           upx -9 target/${{ matrix.target }}/release/iptv
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -44,11 +60,18 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Rust Cache
+      uses: swatinem/rust-cache@v2
+      with:
+        key: windows
+
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
         msystem: UCRT64
         pacboy: upx:p
+
     - name: Build
       env:
         RUSTFLAGS: -Ctarget-feature=-crt-static -Zunstable-options -Cpanic=immediate-abort -Zlocation-detail=none
@@ -58,6 +81,7 @@ jobs:
         rustup +nightly component add rust-src
         cargo +nightly build -Z build-std=std,panic_abort -r --target x86_64-pc-windows-gnu
         msys2 -c 'upx -9 ./target/x86_64-pc-windows-gnu/release/iptv.exe'
+
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
