@@ -140,3 +140,44 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  release:
+    name: Create Release
+    needs: [build-openwrt, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p release-assets
+          cd artifacts
+          # 压缩每一个 Linux musl 架构的二进制文件
+          for dir in *-unknown-linux-musl; do
+            if [ -d "$dir" ]; then
+              zip -j "../release-assets/${dir}.zip" "${dir}/iptv"
+            fi
+          done
+          # 压缩 Windows 架构的二进制文件
+          if [ -d "x86_64-pc-windows-gnu" ]; then
+            zip -j "../release-assets/x86_64-pc-windows-gnu.zip" "x86_64-pc-windows-gnu/iptv.exe"
+          fi
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          draft: false
+          prerelease: false
+
+
