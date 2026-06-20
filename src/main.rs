@@ -263,7 +263,7 @@ async fn playlist_impl(args: Data<Args>, req: HttpRequest) -> HttpResponse {
             }
         }
         Ok(ch) => {
-            let playlist = format!("#EXTM3U x-tvg-url=\"{}://{}/xmltv\"\n", scheme, host)
+            let playlist_str = format!("#EXTM3U x-tvg-url=\"{}://{}/xmltv\"\n", scheme, host)
                 + &ch
                     .into_iter()
                     .map(|c| {
@@ -304,11 +304,11 @@ async fn playlist_impl(args: Data<Args>, req: HttpRequest) -> HttpResponse {
                     }
                 };
             if let Ok(mut old_playlist) = OLD_PLAYLIST.try_lock() {
-                *old_playlist = Some(playlist.clone());
+                *old_playlist = Some(playlist_str.clone());
             }
             HttpResponse::Ok()
                 .content_type("application/x-mpegurl")
-                .body(playlist)
+                .body(playlist_str)
         }
     }
 }
